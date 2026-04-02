@@ -39,7 +39,7 @@ fdata = fdft(data,time,mpts)
 
 # or if you also want the window function
 fdata, fwind = fdft(data,time,mpts,return_window=True)
-"""
+```
 This returns a FT with `mpts` points.  By default the sampling time range is determined by
 the min and max of the time array, but there are optional parameters to change the time limits
 and frequency spacing.
