@@ -57,13 +57,13 @@ The main input parameters are:
 
 | parameter | description |
 | :--- | :--- |
-| data    | `[n]` Array to be transformed.  If `axis` is specified, this can also be a [n,:] or [:,n] array (for axis=0 or 1) of time-sampled spectra. |
+| data    | `[n]` Array to be transformed.  If `axis` is specified, this can also be a `[n,:]` or `[:,n]` array (for axis=0 or 1) of time-sampled spectra. |
 | time    | `[n]` Times of data samples |
 | m       | Number of frequency points in transform |
 | return_window | Boolean indicated that the window function should be returned.  This is equivalent to the "dirty beam" in VLA parlance. |
 
 See the function's help for information on other parameters.  The function returns a complex array with `mpts` points (or a 2-D array `[:,mpts]` if the
-`axis` parameter if a 2-D data array is used).  If `return_window` is True, a second array (with twice as many points) is returned with the window function.
+`axis` parameter if a 2-D data array is used).  If `return_window` is True, a second array (with twice as many points, i.e., `[2*mpts]`) is returned with the window function.
 
 ## Usage: autocorr2d, 2-photon autocorrelation function
 
