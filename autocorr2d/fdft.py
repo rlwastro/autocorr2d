@@ -11,7 +11,7 @@ def fdft(data, time, m, *,
          verbose=False):
     """
     Calculate complex discrete Fourier transform for real
-    data which is sampled on unevenly spaced grid.  This
+    data that is sampled on unevenly spaced grid.  This
     version samples the unevenly spaced data to an evenly
     spaced grid so that the FFT algorithm can be used.  This
     is much faster than the direct calculation of the DFT.
@@ -36,7 +36,7 @@ def fdft(data, time, m, *,
     Usage:
         fdata = fdft(data,time,mpts)
         or
-        fdata, fwind = fdft(data,time,mpts,return_iindow=True)
+        fdata, fwind = fdft(data,time,mpts,return_window=True)
     
     Inputs:
         data    [n] Array to be transformed.  If axis is specified,
