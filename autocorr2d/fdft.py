@@ -1,7 +1,7 @@
 import numpy as np
-from fdft_method_default import fdft_method_default
-from convgrid import convgrid
-from convft import convft
+from .fdft_method_default import fdft_method_default
+from .convgrid import convgrid
+from .convft import convft
 import scipy.fft
 import sys
 

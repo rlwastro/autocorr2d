@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.ndimage import value_indices
-from fdft_method_default import fdft_method_default
+from .fdft_method_default import fdft_method_default
 
 def convgrid(data,time,tmin,dt,m,wt=None, axis=None, normalize=True, method=None):
     """

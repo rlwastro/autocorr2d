@@ -1,5 +1,5 @@
 import numpy as np
-from fdft_method_default import fdft_method_default
+from .fdft_method_default import fdft_method_default
 
 def convft(nx, method='kaiser'):
     """return Fourier transform of convolving function

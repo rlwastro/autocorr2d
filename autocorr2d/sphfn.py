@@ -11,8 +11,6 @@ Some tests added by RLW
 """
 
 import numpy as np
-import math
-
 
 def sphfn(eta, exponent_id, support, gridding=True, normalize=False, **kw):
     """Evaluate approximations to zero-order spheroidal functions.

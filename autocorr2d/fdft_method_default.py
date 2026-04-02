@@ -1,9 +1,9 @@
 # define default paramters for resampling
 
 import numpy as np
-from kaiser import kaiser
-from binfunc import binfunc
-from sphfn import sphfn
+from .kaiser import kaiser
+from .binfunc import binfunc
+from .sphfn import sphfn
 
 def fdft_method_default(method='kaiser', dim=2, **kw):
     """Define default parameters for a resampling/weighting method.

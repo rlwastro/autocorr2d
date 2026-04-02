@@ -1,5 +1,5 @@
 import numpy as np
-from fdft_method_default import fdft_method_default
+from .fdft_method_default import fdft_method_default
 import sys
 
 def convgrid2d(x, y, xmin, ymin, dx, dy, mx, my, wt=None,
