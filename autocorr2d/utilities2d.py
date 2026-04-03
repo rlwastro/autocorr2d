@@ -115,8 +115,6 @@ def convft2d(nx, ny, method="kaiser", verbose=False, rfft=False):
 
 
 if __name__ == "__main__":
-    from .printit import printit
-
     if len(sys.argv) <= 1:
         methods = ["kaiser"]
     else:
@@ -145,7 +143,9 @@ if __name__ == "__main__":
 
     for method in methods:
         cdata = convgrid2d(x, y, xmin, ymin, dx, dy, mx, my, method=method)
-        print('convgrid2d',method)
-        printit('x', x)
-        printit('y', y)
-        printit('cdata', cdata)
+        with np.printoptions(suppress=True, precision=6, floatmode="fixed", linewidth=250):
+            print("convgrid2d",method)
+            print(f"{xmin=} {ymin=} {dx=:.6f} {dy=:.6f} {mx=} {my=}")
+            print(f"{cdata.shape=} {cdata.min()=:.6f} {cdata.max()=:.6f} {cdata.mean()=:.6f}")
+            print("cdata")
+            print(cdata[:5,:5])
