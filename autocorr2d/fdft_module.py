@@ -1,7 +1,6 @@
 import numpy as np
-from .fdft_method_default import fdft_method_default
-from .convgrid import convgrid
-from .convft import convft
+from .gridding_functions import fdft_method_default
+from .utilities1d import convgrid, convft
 import scipy.fft
 import sys
 
@@ -241,19 +240,12 @@ if __name__ == "__main__":
     else:
         methods = sys.argv[1:]
 
-    for method in methods:
-        fdata, fwind, cdata, cwind, ftnorm = fdft(data, time, 64,
-                                                  tmin=0.0, tmax=1.0,
-                                                  method=method,
-                                                  return_window=True,
-                                                  return_cdata=True,
-                                                  return_cwind=True,
-                                                  return_ftnorm=True)
-        print("fdft", method)
-        printit("data", data)
-        printit("time", time)
-        printit("fdata", fdata)
-        printit("fwind", fwind)
-        printit("cdata", cdata)
-        printit("cwind", cwind)
-        printit("ftnorm", ftnorm)
+    method = "kaiser"
+    fdata, fwind = fdft(data, time, 64,
+                        tmin=0.0, tmax=1.0,
+                        method=method,
+                        return_window=True)
+    with np.printoptions(suppress=True, precision=6, floatmode="fixed", linewidth=250):
+        print(f"fdft {method} {n=}")
+        print("fdata", fdata[:5])
+        print("fwind", fwind[:5])

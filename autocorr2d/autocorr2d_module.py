@@ -1,7 +1,6 @@
 import numpy as np
-from .fdft_method_default import fdft_method_default
-from .convgrid2d import convgrid2d
-from .convft2d import convft2d
+from .gridding_functions import fdft_method_default
+from .utilities2d import convgrid2d, convft2d
 import scipy.fft
 import sys
 
@@ -139,7 +138,7 @@ def autocorr2d(x, y, ngx=125, ngy=250, xgmin=-200.0, xgmax=200.0, ygmax=200.0,
             raise ValueError("xwin must be [...,2] array")
         # change to 2-D array for consistency
         if xwin.ndim == 1:
-            xwin.shape = (1,2)
+            xwin = xwin.reshape(1,2)
     if ywin is not None:
         ywin = np.asarray(ywin)
         if ywin.ndim < 1 or ywin.ndim > 2:
@@ -147,7 +146,7 @@ def autocorr2d(x, y, ngx=125, ngy=250, xgmin=-200.0, xgmax=200.0, ygmax=200.0,
         if ywin.shape[-1] != 2:
             raise ValueError("ywin must be [...,2] array")
         if ywin.ndim == 1:
-            ywin.shape = (1,2)
+            ywin = ywin.reshape(1,2)
 
     # allow specifying only xgmax to get symmetrical grid about zero
     # for consistency allow only xgmin too
@@ -484,14 +483,12 @@ def fftsize(n, oned=False):
 
 
 if __name__ == "__main__":
-    from .printit import printit
-
-    # create test data for convgrid2d
     method = "kaiser"
 
+    # create test data using golden ratio spacing, which
+    # is fairly random for a Fibonacci number of points
+
     n = 987 # fibonacci number
-    ### n = 55 # fibonacci number
-    # golden ratio spacing is fairly random
     phi = (1.0+np.sqrt(5.0))/2.0
     omega = (np.arange(n)*phi) % 1.0
     r = (((n + np.arange(n))*np.arange(n))*phi) % 1.0
@@ -507,22 +504,13 @@ if __name__ == "__main__":
     ywin = [0.0, 500.0]
     xwin = np.log(1310.*(1+np.array([-250.0,250.0])/c))*c
 
-    verbose = False
-    idltest = True
-    ### for patch in (0,):
-    for patch in (0,1):
+    bim, window = autocorr2d(zwave, time, method=method,
+                             return_window=True, normwindow=True,
+                             xwin=xwin, ywin=ywin)
 
-        bim, window = autocorr2d(zwave, time, method=method,
-                                 return_window=True, normwindow=True,
-                                 xwin=xwin, ywin=ywin, idltest=idltest,
-                                 verbose=verbose, patch=patch)
-        if verbose:
-            print(f"{bim.shape=}")
-
-        print(f"autocorr2d {method} {patch=}")
-        printit("xwin", np.exp(xwin/c), width=12)
-        printit("ywin", ywin)
-        printit("zwave", np.exp(zwave/c), width=12)
-        printit("time", time)
-        printit("bim", bim, precision=4)
-        printit("window", window, precision=4)
+    with np.printoptions(suppress=True, precision=6, floatmode="fixed", linewidth=250):
+        print(f"autocorr2d {method=} {n} data points")
+        print(f"xwin={np.exp(xwin/c)} (wavelength)")
+        print(f"{ywin=}")
+        print(f"{bim.shape=} {bim.min()=:.6f} {bim.max()=:.6f} {bim.mean()=:.6f}")
+        print(f"{window.shape=} {window.min()=:.6f} {window.max()=:.6f} {window.mean()=:.6f}")
