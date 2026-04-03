@@ -1,5 +1,5 @@
 [project]
-name = "python"
+name = "autocorr2d"
 version = "0.1.0"
 description = "2-photon autocorrelation function"
 readme = "README.md"
