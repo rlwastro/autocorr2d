@@ -204,8 +204,8 @@ def autocorr2d(x, y, ngx=125, ngy=250, xgmin=-200.0, xgmax=200.0, ygmax=200.0,
         nfx = fftsize(nx)
         nfy = fftsize(ny)
     else:
-        nfx = scipy.fft.next_fast_len(nx)
-        nfy = scipy.fft.next_fast_len(ny)
+        nfx = scipy.fft.next_fast_len(nx, real=True)
+        nfy = scipy.fft.next_fast_len(ny, real=True)
 
     if verbose:
         print(f"Grid size {nx} {ny} FFT size {nfx} {nfy}"
