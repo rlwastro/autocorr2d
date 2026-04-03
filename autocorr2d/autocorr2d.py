@@ -484,7 +484,7 @@ def fftsize(n, oned=False):
 
 
 if __name__ == "__main__":
-    from printit import printit
+    from .printit import printit
 
     # create test data for convgrid2d
     method = "kaiser"

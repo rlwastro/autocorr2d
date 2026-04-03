@@ -83,7 +83,7 @@ def convgrid2d(x, y, xmin, ymin, dx, dy, mx, my, wt=None,
     return cdata.reshape(my,mx)
 
 if __name__ == "__main__":
-    from printit import printit
+    from .printit import printit
 
     if len(sys.argv) <= 1:
         methods = ["kaiser"]
