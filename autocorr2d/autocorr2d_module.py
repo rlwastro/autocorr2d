@@ -287,7 +287,8 @@ def autocorr2d(x, y, ngx=125, ngy=250, xgmin=-200.0, xgmax=200.0, ygmax=200.0,
         if verbose:
             print("After binconvolve facorr zero freq point", facorr[0,0])
 
-    acorr = scipy.fft.irfft2(facorr,norm="backward")
+    # specify output size in case the size is odd
+    acorr = scipy.fft.irfft2(facorr,norm="backward", s=(nfy,nfx))
     if verbose:
         print("autocorr near zero freq", acorr[:2,0])
 
@@ -414,7 +415,8 @@ def autocorr2d(x, y, ngx=125, ngy=250, xgmin=-200.0, xgmax=200.0, ygmax=200.0,
         if verbose:
             print("After binconvolve window fwcorr zero freq point", fwcorr[0,0])
 
-    wcorr = scipy.fft.irfft2(fwcorr, norm="backward")
+    # specify output size in case the size is odd
+    wcorr = scipy.fft.irfft2(fwcorr, norm="backward", s=(nfy,nfx))
     if verbose:
         print("wcorr near zero freq", wcorr[0:2,0])
 
