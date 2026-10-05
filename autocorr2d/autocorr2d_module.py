@@ -4,9 +4,12 @@ from .utilities2d import convgrid2d, convft2d
 import scipy.fft
 import sys
 
+from .variance import variance_maps 
+
 def autocorr2d(x, y, ngx=125, ngy=250, xgmin=-200.0, xgmax=200.0, ygmax=200.0,
                method="kaiser", deconvolve=True, binconvolve="binfunc1", ninterlace=1,
-               return_window=False, xwin=None, ywin=None, normwindow=False,
+               return_window=False, return_variance=False,
+               xwin=None, ywin=None, normwindow=False,
                patch=True, verbose=False, idltest=False):
     """Calculate 2-point autocorrelation for points at positions x,y.
     
@@ -85,11 +88,12 @@ def autocorr2d(x, y, ngx=125, ngy=250, xgmin=-200.0, xgmax=200.0, ygmax=200.0,
                   filter.  This leads to much-improved quality along those lines.  Note that this has
                   no effect at all on the asymmetrical part of the autocorrelation.  The default value
                   is patch = True; set patch=False to turn this off.
-      return_window  If True, also returns window function
+      return_window   If True, also returns window function
+      return_variance If True, also returns variance function
       xwin        [2] or [:,2] array giving boundaries of regions included in x
       ywin        [2] or [:,2] array giving boundaries of regions included in y
-                  If return_window is True, xwin and ywin must be specified, and a window function is
-                  also computed.
+                  If return_window or return_variance is True, xwin and ywin must be specified, and
+                  a window function and/or a variance function are also computed.
       normwindow  If True, window function is normalized to match the data.  Default is window function
                   normalized to unity peak.  Note normwindow=True is exactly equivalent to multiplying the
                   window function by the square of the number of counts.
@@ -98,6 +102,8 @@ def autocorr2d(x, y, ngx=125, ngy=250, xgmin=-200.0, xgmax=200.0, ygmax=200.0,
     Outputs:
       Function result is a [ngy+1, ngx] double array with autocorrelation in bins
       If return_window is True, also returns the matching window function derived from xwin, ywin
+      If return_variance is True, also returns the matching variance function derived from xwin, ywin and the data
+      The return tuple order is (autocorrelation, window, variance)
     Restrictions:
       x and y must be matching 1-D arrays.
     Procedure:
@@ -127,7 +133,7 @@ def autocorr2d(x, y, ngx=125, ngy=250, xgmin=-200.0, xgmax=200.0, ygmax=200.0,
     if y.ndim != 1 or y.size != n:
         raise ValueError("y must be 1-D array and must match x in length")
 
-    if return_window:
+    if return_window or return_variance:
         if xwin is None or ywin is None:
             raise ValueError("Must specify xwin, ywin parameters to compute a window function")
     if xwin is not None:
@@ -195,8 +201,8 @@ def autocorr2d(x, y, ngx=125, ngy=250, xgmin=-200.0, xgmax=200.0, ygmax=200.0,
     # add enough padding to ensure there is no aliasing within the grid output region
     # XXX also add some padding for the convolution function support
     # XXX think more carefully about this, is this enough padding?
-    nx = np.floor((xmax - xmin + (xgmax-xgmin))/dx).astype(int) + 1
-    ny = np.floor((ymax - ymin + (ygmax-ygmin))/dy).astype(int) + 1
+    nx = 2*np.floor((xmax - xmin + (xgmax-xgmin))/dx).astype(int) + 1
+    ny = 2*np.floor((ymax - ymin + 2*(ygmax-ygmin))/dy).astype(int) + 1
 
     # increase the grid size to make FFT efficient
     if idltest:
@@ -214,6 +220,11 @@ def autocorr2d(x, y, ngx=125, ngy=250, xgmin=-200.0, xgmax=200.0, ygmax=200.0,
     # FFT of gridding function
     ftnorm = convft2d(nfx, nfy, method=dmethod, rfft=True)
 
+    # for variance sums (strictly needed only if return_variance is true, but 
+    # they are easy to compute)
+    cxsum = None
+    cysum = None
+   
     # do this calculation at multiple different interlace positions and average the results
 
     for interlace in range(ninterlace):
@@ -229,6 +240,14 @@ def autocorr2d(x, y, ngx=125, ngy=250, xgmin=-200.0, xgmax=200.0, ygmax=200.0,
 
         cdata = convgrid2d(x + xoffset, y + yoffset, xmin, ymin, dx, dy, nfx, nfy,
                            method=dmethod, verbose=verbose)
+
+        # compute sums in x and y directions to support computation of variance
+        if cxsum is None:
+            cxsum = cdata.sum(axis=0)
+            cysum = cdata.sum(axis=1)
+        else:
+            cxsum += cdata.sum(axis=0)
+            cysum += cdata.sum(axis=1)
 
         if verbose:
             print(f"cdata sum is {cdata.sum():.0f} {n=}")
@@ -270,6 +289,8 @@ def autocorr2d(x, y, ngx=125, ngy=250, xgmin=-200.0, xgmax=200.0, ygmax=200.0,
         if verbose:
             print(f"Completed interlace step {interlace+1}")
 
+    cxsum /= ninterlace
+    cysum /= ninterlace
     fresult /= ninterlace
     facorr = fresult
     if verbose:
@@ -321,9 +342,9 @@ def autocorr2d(x, y, ngx=125, ngy=250, xgmin=-200.0, xgmax=200.0, ygmax=200.0,
         section[:, ngx2:] = acorr[:ngy+1, :ngx-ngx2]
         section[:, :ngx2] = acorr[:ngy+1, -ngx2:]
 
-    # we are done if the window is not requested
+    # we are done if the window and/or variance are not requested
 
-    if not return_window:
+    if not (return_window or return_variance):
         return section
 
     # create array of covered region
@@ -382,6 +403,9 @@ def autocorr2d(x, y, ngx=125, ngy=250, xgmin=-200.0, xgmax=200.0, ygmax=200.0,
             ydata[j1] = ey1[j]
             ydata[j2] = ey2[j]
 
+    assert len(xdata)==len(cxsum) and len(ydata)==len(cysum), \
+        f"Wrong sizes {len(xdata)=} {len(ydata)=} {len(cxsum)=} {len(cysum)=}"
+
     cdata = np.outer(ydata, xdata) / ((ypix2-ypix1).sum()*(xpix2-xpix1).sum())
     if verbose:
         print(f"Window xdata sum {xdata.sum()} expected {(xpix2-xpix1).sum()}")
@@ -422,12 +446,42 @@ def autocorr2d(x, y, ngx=125, ngy=250, xgmin=-200.0, xgmax=200.0, ygmax=200.0,
 
     #XXX Need to apply patch here too??
     # shift-by-hand
-    # window = (shift(wcorr[:ngy+1, :], 0, (ngx//2))) [:, :ngx]
+    # window = np.roll(wcorr[:ng+1, :], ngx//2, axis=1)[:, :ngx]
     window = np.empty((ngy+1, ngx), dtype=float)
     window[:, ngx2:] = wcorr[:ngy+1, :ngx-ngx2]
     window[:, :ngx2] = wcorr[:ngy+1, -ngx2:]
 
-    return section, window
+    rv = [section]
+    if return_window:
+        rv.append(window)
+
+    if return_variance:
+        # only do time>=0 half
+        # ought to be able to do only vel>=0 too if this is symmetrical
+        # it is not exactly symmetrical at the moment (why?) so I average the halves
+        swindow = window
+        x_lags = np.arange(-(ngx//2), 1+(ngx//2), dtype=int)
+        y_lags = np.arange(1+ngy, dtype=int)
+        if normwindow:
+            # use window normalized to unity
+            swindow = window / n**2
+        else:
+            swindow = window
+
+        var_dict = variance_maps(cxsum/cxsum.sum(), cysum/cysum.sum(),
+                                 xdata/xdata.sum(), ydata/ydata.sum(),
+                                 n, x_lags, y_lags, RR=swindow)
+
+        variance = var_dict["variance_DD_only"]*n*(n-1)
+        if verbose:
+            print(f"{variance.shape=} {section.shape=} {ngx=} {ngy=} {len(x_lags)=} {len(y_lags)=}")
+        # force exact symmetry
+        variance = 0.5*(variance + variance[:,::-1])
+
+        assert variance.shape==section.shape, f"mismatch {variance.shape=} {section.shape=}"
+        rv.append(variance)
+
+    return tuple(rv)
 
 def ampsq(cdata):
     """Return square amplitude of complex array"""
