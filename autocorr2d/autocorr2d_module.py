@@ -4,7 +4,7 @@ from .utilities2d import convgrid2d, convft2d
 import scipy.fft
 import sys
 
-from .variance import variance_maps 
+from .landy_szalay_2d import variances_from_padded 
 
 def autocorr2d(x, y, ngx=125, ngy=250, xgmin=-200.0, xgmax=200.0, ygmax=200.0,
                method="kaiser", deconvolve=True, binconvolve="binfunc1", ninterlace=1,
@@ -468,17 +468,28 @@ def autocorr2d(x, y, ngx=125, ngy=250, xgmin=-200.0, xgmax=200.0, ygmax=200.0,
         else:
             swindow = window
 
-        var_dict = variance_maps(cxsum/cxsum.sum(), cysum/cysum.sum(),
-                                 xdata/xdata.sum(), ydata/ydata.sum(),
-                                 n, x_lags, y_lags, RR=swindow)
+        x_lags = (-(ngx//2), (ngx//2))
+        y_lags = (0, ngy)
+        support_shape = (nfy//2,nfx//2)
+        poisson_mean = float(n)
+        var_dict = variances_from_padded(cxsum/cxsum.sum(),
+                                         cysum/cysum.sum(),
+                                         xdata/xdata.sum(),
+                                         ydata/ydata.sum(),
+                                         support_shape,
+                                         poisson_mean,
+                                         x_lag_min=x_lags[0],
+                                         x_lag_max=x_lags[1],
+                                         y_lag_min=y_lags[0],
+                                         y_lag_max=y_lags[1])
 
-        variance = var_dict["variance_DD_only"]*n*(n-1)
+        variance = var_dict["variance_dd_only"]*n*(n-1)
         if verbose:
-            print(f"{variance.shape=} {section.shape=} {ngx=} {ngy=} {len(x_lags)=} {len(y_lags)=}")
+            print(f"{variance.shape=} {section.shape=} {ngx=} {ngy=}")
+            print(f"{var_dict['method_x']=} {var_dict['method_y']=}")
+        assert variance.shape==section.shape, f"mismatch {variance.shape=} {section.shape=}"
         # force exact symmetry
         variance = 0.5*(variance + variance[:,::-1])
-
-        assert variance.shape==section.shape, f"mismatch {variance.shape=} {section.shape=}"
         rv.append(variance)
 
     return tuple(rv)
