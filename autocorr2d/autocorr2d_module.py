@@ -8,7 +8,7 @@ from .landy_szalay_2d import variances_from_padded
 
 def autocorr2d(x, y, ngx=125, ngy=250, xgmin=-200.0, xgmax=200.0, ygmax=200.0,
                method="kaiser", deconvolve=True, binconvolve="binfunc1", ninterlace=1,
-               return_window=False, return_variance=False,
+               return_window=False, return_variance=False, variance_method="auto",
                xwin=None, ywin=None, normwindow=False,
                patch=True, verbose=False, idltest=False):
     """Calculate 2-point autocorrelation for points at positions x,y.
@@ -459,14 +459,14 @@ def autocorr2d(x, y, ngx=125, ngy=250, xgmin=-200.0, xgmax=200.0, ygmax=200.0,
         # only do time>=0 half
         # ought to be able to do only vel>=0 too if this is symmetrical
         # it is not exactly symmetrical at the moment (why?) so I average the halves
-        swindow = window
+        # swindow = window
         x_lags = np.arange(-(ngx//2), 1+(ngx//2), dtype=int)
         y_lags = np.arange(1+ngy, dtype=int)
-        if normwindow:
-            # use window normalized to unity
-            swindow = window / n**2
-        else:
-            swindow = window
+        # if normwindow:
+        #     # use window normalized to unity
+        #     swindow = window / n**2
+        # else:
+        #     swindow = window
 
         x_lags = (-(ngx//2), (ngx//2))
         y_lags = (0, ngy)
@@ -481,15 +481,16 @@ def autocorr2d(x, y, ngx=125, ngy=250, xgmin=-200.0, xgmax=200.0, ygmax=200.0,
                                          x_lag_min=x_lags[0],
                                          x_lag_max=x_lags[1],
                                          y_lag_min=y_lags[0],
-                                         y_lag_max=y_lags[1])
+                                         y_lag_max=y_lags[1],
+                                         method=variance_method)
 
         variance = var_dict["variance_dd_only"]*n*(n-1)
         if verbose:
             print(f"{variance.shape=} {section.shape=} {ngx=} {ngy=}")
             print(f"{var_dict['method_x']=} {var_dict['method_y']=}")
         assert variance.shape==section.shape, f"mismatch {variance.shape=} {section.shape=}"
-        # force exact symmetry
-        variance = 0.5*(variance + variance[:,::-1])
+        #XXX # force exact symmetry
+        #XXX variance = 0.5*(variance + variance[:,::-1])
         rv.append(variance)
 
     return tuple(rv)
