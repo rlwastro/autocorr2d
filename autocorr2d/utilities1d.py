@@ -73,7 +73,7 @@ def convgrid(data,time,tmin,dt,m,wt=None, axis=None, normalize=True, method=None
     return cdata*(m/n)
 
 
-def convft(nx, method='kaiser'):
+def convft(nx, method='kaiser', rfft=False):
     """return Fourier transform of convolving function
     
     method is the interpolation method.  This must be a string or a dict with a field
@@ -81,9 +81,15 @@ def convft(nx, method='kaiser'):
     For example, use method=dict(name="kaiser", beta=4.09*np.pi, support=8) to
     specify parameters for the Kaiser function.  See the fdft_method_default.py
     function for the defaults.
+
+    If rfft=True, this is designed to apply to the output of the rfft function, which
+    has only half the data (so the shape is [nx//2 + 1]).
     """
 
     dmethod = fdft_method_default(method, dim=1)
-    xx = (np.arange(nx,dtype=int).clip(max=nx-np.arange(nx,dtype=int))) / (nx/2)
+    if rfft:
+        xx = np.arange(nx//2 + 1) / (nx//2)
+    else:
+        xx = np.arange(nx).clip(max=(nx-np.arange(nx))) / (nx//2)
     gx = dmethod['function'](xx, gridding=False, **dmethod)
     return gx

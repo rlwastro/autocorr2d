@@ -1,10 +1,12 @@
 import numpy as np
 from .gridding_functions import fdft_method_default
 from .utilities2d import convgrid2d, convft2d
+from .utilities1d import convft
 import scipy.fft
 import sys
 
-from .landy_szalay_2d import variances_from_padded 
+from .variance import variances
+from time import time as ftime
 
 def autocorr2d(x, y, ngx=125, ngy=250, xgmin=-200.0, xgmax=200.0, ygmax=200.0,
                method="kaiser", deconvolve=True, binconvolve="binfunc1", ninterlace=1,
@@ -407,6 +409,7 @@ def autocorr2d(x, y, ngx=125, ngy=250, xgmin=-200.0, xgmax=200.0, ygmax=200.0,
         f"Wrong sizes {len(xdata)=} {len(ydata)=} {len(cxsum)=} {len(cysum)=}"
 
     cdata = np.outer(ydata, xdata) / ((ypix2-ypix1).sum()*(xpix2-xpix1).sum())
+
     if verbose:
         print(f"Window xdata sum {xdata.sum()} expected {(xpix2-xpix1).sum()}")
         print(f"Window ydata sum {ydata.sum()} expected {(ypix2-ypix1).sum()}")
@@ -429,22 +432,17 @@ def autocorr2d(x, y, ngx=125, ngy=250, xgmin=-200.0, xgmax=200.0, ygmax=200.0,
     if verbose:
         print("Window fwcorr zero freq point", fwcorr[0,0])
 
-    #XXX??
-    ## # subtract self-correlations
-    ## fwcorr -= total(cdata)
-
-    # if binconvolve is set, apply binning FFT
-    if binconvolve:
-        fwcorr *= convft2d(nfx, nfy, method=binfunc, verbose=verbose, rfft=True)
-        if verbose:
-            print("After binconvolve window fwcorr zero freq point", fwcorr[0,0])
+#    # if binconvolve is set, apply binning FFT
+#    if binconvolve:
+#        fwcorr *= convft2d(nfx, nfy, method=binfunc, verbose=verbose, rfft=True)
+#        if verbose:
+#            print("After binconvolve window fwcorr zero freq point", fwcorr[0,0])
 
     # specify output size in case the size is odd
     wcorr = scipy.fft.irfft2(fwcorr, norm="backward", s=(nfy,nfx))
     if verbose:
         print("wcorr near zero freq", wcorr[0:2,0])
 
-    #XXX Need to apply patch here too??
     # shift-by-hand
     # window = np.roll(wcorr[:ng+1, :], ngx//2, axis=1)[:, :ngx]
     window = np.empty((ngy+1, ngx), dtype=float)
@@ -462,32 +460,37 @@ def autocorr2d(x, y, ngx=125, ngy=250, xgmin=-200.0, xgmax=200.0, ygmax=200.0,
         # swindow = window
         x_lags = np.arange(-(ngx//2), 1+(ngx//2), dtype=int)
         y_lags = np.arange(1+ngy, dtype=int)
-        # if normwindow:
-        #     # use window normalized to unity
-        #     swindow = window / n**2
-        # else:
-        #     swindow = window
+        if normwindow:
+            # use window normalized to unity
+            swindow = window / n**2
+        else:
+            swindow = window
 
         x_lags = (-(ngx//2), (ngx//2))
         y_lags = (0, ngy)
-        support_shape = (nfy//2,nfx//2)
+        support_shape = ( np.floor((ymax-ymin)/dy).astype(int) + 1,
+                          np.floor((xmax-xmin)/dx).astype(int) + 1
+                        )
         poisson_mean = float(n)
-        var_dict = variances_from_padded(cxsum/cxsum.sum(),
-                                         cysum/cysum.sum(),
-                                         xdata/xdata.sum(),
-                                         ydata/ydata.sum(),
-                                         support_shape,
-                                         poisson_mean,
-                                         x_lag_min=x_lags[0],
-                                         x_lag_max=x_lags[1],
-                                         y_lag_min=y_lags[0],
-                                         y_lag_max=y_lags[1],
-                                         method=variance_method)
-
-        variance = var_dict["variance_dd_only"]*n*(n-1)
+        # trim points where window is zero and divide data profile by window profile
+        cxnorm = np.zeros(nfx, dtype=float)
+        w = np.where(xdata != 0)[0]
+        cxnorm[w] = cxsum[w] / xdata[w]
+        cynorm = np.zeros(nfy, dtype=float)
+        w = np.where(ydata != 0)[0]
+        cynorm[w] = cysum[w] / ydata[w]
+        variance = variances(cxnorm/cxnorm.sum(),
+                             cynorm/cynorm.sum(),
+                             xdata/xdata.sum(),
+                             ydata/ydata.sum(),
+                             support_shape,
+                             poisson_mean,
+                             x_lag_min=x_lags[0],
+                             x_lag_max=x_lags[1],
+                             y_lag_min=y_lags[0],
+                             y_lag_max=y_lags[1])
         if verbose:
             print(f"{variance.shape=} {section.shape=} {ngx=} {ngy=}")
-            print(f"{var_dict['method_x']=} {var_dict['method_y']=}")
         assert variance.shape==section.shape, f"mismatch {variance.shape=} {section.shape=}"
         #XXX # force exact symmetry
         #XXX variance = 0.5*(variance + variance[:,::-1])

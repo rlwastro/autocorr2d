@@ -12,6 +12,7 @@ normalized internally unless normalization is disabled. Only NumPy is needed.
 """
 
 import numpy as np
+import scipy.fft
 
 
 def _physical_slice(padded_size, support_size, support_origin):
@@ -256,11 +257,12 @@ def padded_linear_correlation(
             zero_tolerance,
         )
 
-    first_fft = np.fft.fftn(first_padded)
-    second_fft = np.fft.fftn(second_padded)
-    correlation = np.fft.fftshift(
-        np.fft.ifftn(np.conj(first_fft) * second_fft)
-    ).real
+    first_fft = scipy.fft.rfft2(first_padded, norm="backward")
+    second_fft = scipy.fft.rfft2(second_padded, norm="backward")
+    correlation = scipy.fft.fftshift(
+        scipy.fft.irfft2(np.conj(first_fft) * second_fft, norm="backward",
+                         s=first_padded.shape)
+    )
 
     if not crop:
         return correlation
@@ -441,11 +443,18 @@ def _lag_rectangle(
 
 
 def _shift_1d(array, lag):
-    """Return output[i] = array[i + lag], with zero extension.
+    """Return output[i] = array[i + lag], with zero extension."""
+    output = np.zeros_like(array)
+    size = array.size
+    input_start = max(0, lag)
+    input_stop = min(size, size + lag)
+    output_start = max(0, -lag)
+    output_stop = min(size, size - lag)
 
-    Array is padded, so np.roll is appropriate for this.
-    """
-    return np.roll(array, lag)
+    if input_stop > input_start:
+        output[output_start:output_stop] = array[input_start:input_stop]
+
+    return output
 
 
 def _direct_autocorrelation_values(array, lags):
@@ -475,10 +484,11 @@ def _fft_autocorrelation_values(
         int(support_origin) + physical_array.size,
     )
     padded[physical_slice] = physical_array
-    transform = np.fft.fft(padded)
-    correlation = np.fft.fftshift(
-        np.fft.ifft(np.conj(transform) * transform)
-    ).real
+    transform = scipy.fft.rfft(padded, norm="backward")
+    correlation = scipy.fft.fftshift(
+        scipy.fft.irfft(np.conj(transform) * transform, norm="backward",
+                        n=padded.shape[0])
+    )
     center = padded.size // 2
     return np.array([correlation[center + lag] for lag in lags])
 
