@@ -1,12 +1,10 @@
 import numpy as np
 from .gridding_functions import fdft_method_default
 from .utilities2d import convgrid2d, convft2d
-from .utilities1d import convft
 import scipy.fft
 import sys
 
 from .variance import variances
-from time import time as ftime
 
 def autocorr2d(x, y, ngx=125, ngy=250, xgmin=-200.0, xgmax=200.0, ygmax=200.0,
                method="kaiser", deconvolve=True, binconvolve="binfunc1", ninterlace=1,
@@ -431,12 +429,6 @@ def autocorr2d(x, y, ngx=125, ngy=250, xgmin=-200.0, xgmax=200.0, ygmax=200.0,
     fwcorr = ampsq(scipy.fft.rfft2(cdata,norm="backward"))
     if verbose:
         print("Window fwcorr zero freq point", fwcorr[0,0])
-
-#    # if binconvolve is set, apply binning FFT
-#    if binconvolve:
-#        fwcorr *= convft2d(nfx, nfy, method=binfunc, verbose=verbose, rfft=True)
-#        if verbose:
-#            print("After binconvolve window fwcorr zero freq point", fwcorr[0,0])
 
     # specify output size in case the size is odd
     wcorr = scipy.fft.irfft2(fwcorr, norm="backward", s=(nfy,nfx))
