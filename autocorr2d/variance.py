@@ -157,13 +157,17 @@ def _lag_rectangle(
 
     lag_y = np.arange(y_lag_min, y_lag_max + 1)
     lag_x = np.arange(x_lag_min, x_lag_max + 1)
-    lags = np.array(
-        [(dy, dx) for dy in lag_y for dx in lag_x],
-        dtype=int,
-    )
-    #XXX implement meshgrid version of lags
-    #XXX lags2 = np.meshgrid(lag_y, lag_x)
-    #XXX something something
+
+    # combine lags into filled array using np.meshgrid
+    # direct loop equivalent:
+    # lags1 = np.array(
+    #     [(dy, dx) for dy in lag_y for dx in lag_x],
+    #     dtype=int,
+    # )
+
+    lags = np.empty((len(lag_y)*len(lag_x), 2), dtype=int)
+    lags[:,0], lags[:,1] = [ x.ravel() for x in
+                             np.meshgrid(lag_y, lag_x, indexing="ij") ]
     return lags, lag_y, lag_x
 
 
