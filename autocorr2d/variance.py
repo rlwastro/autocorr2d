@@ -119,12 +119,6 @@ def variances(
     zero_y = np.where(lag_y == 0)[0]
     zero_x = np.where(lag_x == 0)[0]
 
-    if zero_y.size and zero_x.size:
-        p_shot_noise[zero_y[0], zero_x[0]] = dd_population[
-            zero_y[0],
-            zero_x[0],
-        ]
-
     # do not divide by rr, and multiply by square of
     # poisson_mean*(poisson_mean-1) to get variance in pairs array
     variance_map = (
@@ -212,30 +206,20 @@ def _separable_q_diagonal(f, g, a, b, lags):
 
 
 def _lag_components(f, g, a, b, dy, dx):
-    """Return separable signed components for one influence function."""
-    if dy == 0 and dx == 0:
-        x_parts = [_shift_1d(f, 0)]
-        y_parts = [_shift_1d(g, 0)]
-        coefficients = [1.0]
-    else:
-        x_parts = [
-            _shift_1d(f, dx),
-            _shift_1d(f, -dx),
-        ]
-        y_parts = [
-            _shift_1d(g, dy),
-            _shift_1d(g, -dy),
-        ]
-        coefficients = [1.0, 1.0]
-    return x_parts, y_parts, coefficients
+    """Return separable signed components for one influence function.
 
-
-def _shift_1d(array, lag):
-    """Return output[i] = array[i + lag], with zero extension.
-
-    Array is padded, so np.roll is appropriate for this.
+    Array is padded, so np.roll (circular shift) is appropriate for shift.
     """
-    return np.roll(array, lag)
+    x_parts = [
+        np.roll(f, dx),
+        np.roll(f, -dx),
+    ]
+    y_parts = [
+        np.roll(g, dy),
+        np.roll(g, -dy),
+    ]
+    coefficients = [1.0, 1.0]
+    return x_parts, y_parts, coefficients
 
 
 def _separable_q_entry(
