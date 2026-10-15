@@ -5,8 +5,10 @@ import scipy.fft
 import sys
 
 def fdft(data, time, m, *,
-         axis=None, tmin=None, tmax=None, freqmin=1.0, iwttype=1, meansub=False, method=None,
-         return_window=False, return_cdata=False, return_cwind=False, return_ftnorm=False,
+         axis=None, tmin=None, tmax=None, freqmin=1.0,
+         iwttype=1, meansub=False, method=None, rfft=False,
+         return_window=False, return_cdata=False,
+         return_cwind=False, return_ftnorm=False,
          verbose=False):
     """
     Calculate complex discrete Fourier transform for real
@@ -62,6 +64,9 @@ def fdft(data, time, m, *,
                 For example, use method=dict(name="kaiser", beta=4.09*np.pi, support=8) to
                 specify parameters for the Kaiser function.  See the fdft_method_default.py
                 function for the defaults.
+        rfft    If true, use a real fft (scipy.fft.rfft), which changes the return format to use
+                half as much storage by not storing the conjugate symmetric part of the result.
+                Default is to use the full complex FFT.
         verbose Set to true to print some info
     Outputs:
         Function result is a [m] (or [:,m] for 2-D data) complex array with
@@ -186,15 +191,15 @@ def fdft(data, time, m, *,
 
     # transform gridded data and put results in fdata
 
-    # fdata = scipy.fft.rfft(cdata,norm="forward",axis=-1)
-    fdata = scipy.fft.fft(cdata,norm="forward",axis=-1)
+    if rfft:
+        fdata = scipy.fft.rfft(cdata,norm="forward",axis=-1)
+    else:
+        fdata = scipy.fft.fft(cdata,norm="forward",axis=-1)
 
     # divide by FT of convolving function to recover DFT of data
     # convft is a function which returns the FT of the convolving function
 
-    ftnorm = convft(m, method=dmethod)
-    # XXX THIS IS WRONG because of the shape of the rfft result
-    # XXX switched to the regular (not real) fft to work around that for now
+    ftnorm = convft(m, method=dmethod, rfft=rfft)
     if twod:
         for j in range(n2):
             fdata[j] /= ftnorm
@@ -206,9 +211,11 @@ def fdft(data, time, m, *,
 
     if return_window:
         cwind = convgrid(wt, time, tmin, dt/2.0, 2*m, method=method)
-        # fwind = scipy.fft.rfft(cwind,norm="forward",axis=-1)
-        fwind = scipy.fft.fft(cwind,norm="forward",axis=-1)
-        fwind /= convft(2*m, method=method)
+        if rfft:
+            fwind = scipy.fft.rfft(cwind,norm="forward",axis=-1)
+        else:
+            fwind = scipy.fft.fft(cwind,norm="forward",axis=-1)
+        fwind /= convft(2*m, method=method, rfft=rfft)
     rv = [fdata]
     if return_window:
         rv.append(fwind)
