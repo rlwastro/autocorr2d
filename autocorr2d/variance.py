@@ -10,9 +10,9 @@ All probability arrays contain probability mass per pixel. Physical values are
 normalized internally. Only NumPy and the scipy.fft modules are needed.
 
 This was created with help from Microsoft Copilot, but was extensively edited
-to simplify the code (particularly the handling of padding).  This version only
-computes the variance for the DD/RR array; the code for the Landy-Szalay
-variance and covariance has been removed.
+to simplify the code (particularly the handling of padding) and fix bugs.
+This version only computes the variance for the DD/RR array; the code for the
+Landy-Szalay variance and covariance has been removed.
 
 R. White, 2026 October 14
 """
@@ -111,8 +111,6 @@ def variances(
     q_dd = _separable_q_diagonal(
         f_padded,
         g_padded,
-        a_padded,
-        b_padded,
         lags,
     ).reshape(rr.shape)
     p_shot_noise = 0.5 * dd_population
@@ -186,7 +184,7 @@ def _fft_autocorrelation_values(
     return correlation[center + lags]
 
 
-def _separable_q_diagonal(f, g, a, b, lags):
+def _separable_q_diagonal(f, g, lags):
     """Compute all diagonal Q terms with separable one-dimensional sums."""
     values = np.empty(len(lags), dtype=float)
 
@@ -194,8 +192,6 @@ def _separable_q_diagonal(f, g, a, b, lags):
         components = _lag_components(
             f,
             g,
-            a,
-            b,
             dy,
             dx,
         )
@@ -203,13 +199,12 @@ def _separable_q_diagonal(f, g, a, b, lags):
             f,
             g,
             components,
-            components,
         )
 
     return values
 
 
-def _lag_components(f, g, a, b, dy, dx):
+def _lag_components(f, g, dy, dx):
     """Return separable signed components for one influence function.
 
     Array is padded, so np.roll (circular shift) is appropriate for shift.
@@ -222,37 +217,32 @@ def _lag_components(f, g, a, b, dy, dx):
         np.roll(g, dy),
         np.roll(g, -dy),
     ]
-    coefficients = [1.0, 1.0]
-    return x_parts, y_parts, coefficients
+    return x_parts, y_parts
 
 
 def _separable_q_entry(
     f,
     g,
-    first_components,
-    second_components,
+    components,
 ):
     """Compute one shared-point Q entry using one-dimensional products."""
-    first_x, first_y, first_coefficients = first_components
-    second_x, second_y, second_coefficients = second_components
+    x, y = components
     value = 0.0
 
-    for first_index, first_coefficient in enumerate(first_coefficients):
-        for second_index, second_coefficient in enumerate(second_coefficients):
+    for first_index in range(len(x)):
+        for second_index in range(len(x)):
             x_value = np.sum(
                 f
-                * first_x[first_index]
-                * second_x[second_index]
+                * x[first_index]
+                * x[second_index]
             )
             y_value = np.sum(
                 g
-                * first_y[first_index]
-                * second_y[second_index]
+                * y[first_index]
+                * y[second_index]
             )
             value += (
-                first_coefficient
-                * second_coefficient
-                * x_value
+                x_value
                 * y_value
             )
 
