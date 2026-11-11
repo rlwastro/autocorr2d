@@ -6,7 +6,7 @@ import sys
 
 from .variance import variances
 
-def autocorr2d(x, y, ngx=125, ngy=250, xgmin=-200.0, xgmax=200.0, ygmax=200.0,
+def autocorr2d(x, y, ngx=125, ngy=250, xgmin=None, xgmax=None, ygmax=None,
                method="kaiser", deconvolve=True, binconvolve="binfunc1", ninterlace=1,
                return_window=False, return_variance=False, variance_method="auto",
                xwin=None, ywin=None, normwindow=False,
