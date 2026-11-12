@@ -151,7 +151,25 @@ def _lag_rectangle(
         or y_lag_min < -ny + 1
         or y_lag_max > ny - 1
     ):
-        raise ValueError("invalid lag bounds")
+        # print more informative error message
+        failures = [label for label, test in
+                    zip(
+                        ["x_lag_min > x_lag_max",
+                         "y_lag_min > y_lag_max",
+                         "x_lag_min < -nx + 1",
+                         "x_lag_max > nx - 1",
+                         "y_lag_min < -ny + 1",
+                         "y_lag_max > ny - 1",
+                        ],
+                        [x_lag_min > x_lag_max,
+                         y_lag_min > y_lag_max,
+                         x_lag_min < -nx + 1,
+                         x_lag_max > nx - 1,
+                         y_lag_min < -ny + 1,
+                         y_lag_max > ny - 1,
+                        ]
+                    ) if test]
+        raise ValueError(f"invalid lag bounds: {', '.join(failures)}")
 
     lag_y = np.arange(y_lag_min, y_lag_max + 1)
     lag_x = np.arange(x_lag_min, x_lag_max + 1)
