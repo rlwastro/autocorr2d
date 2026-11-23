@@ -9,6 +9,7 @@ from .variance import variances
 def autocorr2d(x, y, ngx=125, ngy=250, xgmin=None, xgmax=None, ygmax=None,
                method="kaiser", deconvolve=True, binconvolve="binfunc1", ninterlace=1,
                return_window=False, return_variance=False, variance_method="auto",
+               return_1d_arrays=False,
                xwin=None, ywin=None, normwindow=False,
                patch=True, verbose=False, idltest=False):
     """Calculate 2-point autocorrelation for points at positions x,y.
@@ -88,8 +89,11 @@ def autocorr2d(x, y, ngx=125, ngy=250, xgmin=None, xgmax=None, ygmax=None,
                   filter.  This leads to much-improved quality along those lines.  Note that this has
                   no effect at all on the asymmetrical part of the autocorrelation.  The default value
                   is patch = True; set patch=False to turn this off.
-      return_window   If True, also returns window function
-      return_variance If True, also returns variance function
+      return_window    If True, also returns window function
+      return_variance  If True, also returns variance function
+      return_1d_arrays If True, also returns the 1D profiles aa, bb that generated the distribution
+                       model used to compute the variance.  This only affects the return values if
+                       return_variance is True.
       xwin        [2] or [:,2] array giving boundaries of regions included in x
       ywin        [2] or [:,2] array giving boundaries of regions included in y
                   If return_window or return_variance is True, xwin and ywin must be specified, and
@@ -103,7 +107,8 @@ def autocorr2d(x, y, ngx=125, ngy=250, xgmin=None, xgmax=None, ygmax=None,
       Function result is a [ngy+1, ngx] double array with autocorrelation in bins
       If return_window is True, also returns the matching window function derived from xwin, ywin
       If return_variance is True, also returns the matching variance function derived from xwin, ywin and the data
-      The return tuple order is (autocorrelation, window, variance)
+      If return_1d_arrays is True and return_variance is True, also returns the 1D profiles used for the variance computation
+      The return tuple order is (autocorrelation, window, variance, aa, bb)
     Restrictions:
       x and y must be matching 1-D arrays.
     Procedure:
@@ -471,22 +476,25 @@ def autocorr2d(x, y, ngx=125, ngy=250, xgmin=None, xgmax=None, ygmax=None,
         cynorm = np.zeros(nfy, dtype=float)
         w = np.where(ydata != 0)[0]
         cynorm[w] = cysum[w] / ydata[w]
-        variance = variances(cxnorm/cxnorm.sum(),
-                             cynorm/cynorm.sum(),
-                             xdata/xdata.sum(),
-                             ydata/ydata.sum(),
-                             support_shape,
-                             poisson_mean,
-                             x_lag_min=x_lags[0],
-                             x_lag_max=x_lags[1],
-                             y_lag_min=y_lags[0],
-                             y_lag_max=y_lags[1])
+        variance, aa, bb = variances(cxnorm/cxnorm.sum(),
+                                     cynorm/cynorm.sum(),
+                                     xdata/xdata.sum(),
+                                     ydata/ydata.sum(),
+                                     support_shape,
+                                     poisson_mean,
+                                     x_lag_min=x_lags[0],
+                                     x_lag_max=x_lags[1],
+                                     y_lag_min=y_lags[0],
+                                     y_lag_max=y_lags[1],
+                                     return_1d_arrays=True)
         if verbose:
             print(f"{variance.shape=} {section.shape=} {ngx=} {ngy=}")
         assert variance.shape==section.shape, f"mismatch {variance.shape=} {section.shape=}"
         #XXX # force exact symmetry
         #XXX variance = 0.5*(variance + variance[:,::-1])
         rv.append(variance)
+        if return_1d_arrays:
+            rv.extend([aa, bb])
 
     return tuple(rv)
 

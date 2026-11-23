@@ -38,6 +38,7 @@ def variances(
     y_lag_max=None,
     rr_min_fraction=1e-10,
     zero_tolerance=0.0,
+    return_1d_arrays=False,
 ):
     """Compute DD-only variance maps from padded separable factors.
 
@@ -63,10 +64,17 @@ def variances(
         Mask RR values below this fraction of maximum requested RR.
     zero_tolerance : float or None, optional
         Padding-check tolerance. None disables the numerical check.
+    return_1d_arrays : boolean, optional
+        If true, also returns the 1-D arrays derived from a_padded and
+        b_padded that describe the separable model for the distribution.
 
     Returns
     -------
     variance map over the requested lag region
+    If return_1d_arrays is True, returns
+        (variance, aa, bb)
+    where aa and bb and the 1-d profiles determined
+    from a_padded and b_padded describing the distribution model.
 
     Notes
     -----
@@ -126,7 +134,10 @@ def variances(
     # this is not strictly necessary, but leave it for now
     valid = rr > rr.max() * rr_min_fraction
     variance_map[~valid] = np.nan
-    return variance_map
+    if return_1d_arrays:
+        return variance_map, aa, bb
+    else:
+        return variance_map
 
 
 def _lag_rectangle(
