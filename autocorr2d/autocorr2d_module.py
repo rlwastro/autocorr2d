@@ -8,8 +8,10 @@ from .variance import variances
 
 def autocorr2d(x, y, ngx=125, ngy=250, xgmin=None, xgmax=None, ygmax=None,
                method="kaiser", deconvolve=True, binconvolve="binfunc1", ninterlace=1,
-               return_window=False, return_variance=False, variance_method="auto",
+               return_window=False,
+               return_variance=False,
                return_1d_arrays=False,
+               variance_method="auto",
                xwin=None, ywin=None, normwindow=False,
                patch=True, verbose=False, idltest=False):
     """Calculate 2-point autocorrelation for points at positions x,y.
@@ -91,9 +93,9 @@ def autocorr2d(x, y, ngx=125, ngy=250, xgmin=None, xgmax=None, ygmax=None,
                   is patch = True; set patch=False to turn this off.
       return_window    If True, also returns window function
       return_variance  If True, also returns variance function
-      return_1d_arrays If True, also returns the 1D profiles aa, bb that generated the distribution
-                       model used to compute the variance.  This only affects the return values if
-                       return_variance is True.
+      return_1d_arrays If True, also returns the 1D profiles ff, gg, aa, bb that generated the
+                       distribution model used to compute the variance.  Note that this implies
+                       that return_variance is True.
       xwin        [2] or [:,2] array giving boundaries of regions included in x
       ywin        [2] or [:,2] array giving boundaries of regions included in y
                   If return_window or return_variance is True, xwin and ywin must be specified, and
@@ -107,8 +109,8 @@ def autocorr2d(x, y, ngx=125, ngy=250, xgmin=None, xgmax=None, ygmax=None,
       Function result is a [ngy+1, ngx] double array with autocorrelation in bins
       If return_window is True, also returns the matching window function derived from xwin, ywin
       If return_variance is True, also returns the matching variance function derived from xwin, ywin and the data
-      If return_1d_arrays is True and return_variance is True, also returns the 1D profiles used for the variance computation
-      The return tuple order is (autocorrelation, window, variance, aa, bb)
+      If return_1d_arrays is True, also returns the 1D profiles used for the variance computation
+      The return tuple order is (autocorrelation, window, variance, ff, gg, aa, bb)
     Restrictions:
       x and y must be matching 1-D arrays.
     Procedure:
@@ -138,9 +140,11 @@ def autocorr2d(x, y, ngx=125, ngy=250, xgmin=None, xgmax=None, ygmax=None,
     if y.ndim != 1 or y.size != n:
         raise ValueError("y must be 1-D array and must match x in length")
 
+    if return_1d_arrays:
+        return_variance = True
     if return_window or return_variance:
         if xwin is None or ywin is None:
-            raise ValueError("Must specify xwin, ywin parameters to compute a window function")
+            raise ValueError("Must specify xwin, ywin parameters to compute window or variance")
     if xwin is not None:
         xwin = np.asarray(xwin)
         if xwin.ndim < 1 or xwin.ndim > 2:
@@ -476,7 +480,8 @@ def autocorr2d(x, y, ngx=125, ngy=250, xgmin=None, xgmax=None, ygmax=None,
         cynorm = np.zeros(nfy, dtype=float)
         w = np.where(ydata != 0)[0]
         cynorm[w] = cysum[w] / ydata[w]
-        variance, aa, bb = variances(cxnorm/cxnorm.sum(),
+        variance, ff, gg, aa, bb = variances(
+                                     cxnorm/cxnorm.sum(),
                                      cynorm/cynorm.sum(),
                                      xdata/xdata.sum(),
                                      ydata/ydata.sum(),
@@ -494,7 +499,7 @@ def autocorr2d(x, y, ngx=125, ngy=250, xgmin=None, xgmax=None, ygmax=None,
         #XXX variance = 0.5*(variance + variance[:,::-1])
         rv.append(variance)
         if return_1d_arrays:
-            rv.extend([aa, bb])
+            rv.extend([ff, gg, aa, bb])
 
     return tuple(rv)
 

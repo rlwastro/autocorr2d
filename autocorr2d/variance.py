@@ -65,16 +65,19 @@ def variances(
     zero_tolerance : float or None, optional
         Padding-check tolerance. None disables the numerical check.
     return_1d_arrays : boolean, optional
-        If true, also returns the 1-D arrays derived from a_padded and
-        b_padded that describe the separable model for the distribution.
+        If true, also returns the 1-D arrays derived from f_padded,
+        g_padded, a_padded and b_padded that describe the separable model
+        for the distribution.
 
     Returns
     -------
     variance map over the requested lag region
     If return_1d_arrays is True, returns
-        (variance, aa, bb)
-    where aa and bb and the 1-d profiles determined
-    from a_padded and b_padded describing the distribution model.
+        (variance, ff, gg, aa, bb)
+    where ff, gg, aa and bb and the 1-d profiles determined
+    from f_padded, g_padded, a_padded and b_padded describing
+    the distribution model for the data (ff, gg) and the 
+    window (aa, bb)..
 
     Notes
     -----
@@ -135,7 +138,7 @@ def variances(
     valid = rr > rr.max() * rr_min_fraction
     variance_map[~valid] = np.nan
     if return_1d_arrays:
-        return variance_map, aa, bb
+        return variance_map, ff, gg, aa, bb
     else:
         return variance_map
 
